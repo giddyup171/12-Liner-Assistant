@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Incident Report</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0ede8;--surface:#fff;--border:#d8d3cc;--border-focus:#1c1c1c;
+  --text:#1c1c1c;--text-2:#6b6560;--text-3:#a09b95;
+  --accent:#c0392b;--success:#2d6a4f;--success-bg:#ebf5f0;--success-border:#95d5b2;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--radius:8px;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 1rem 5rem}
+.shell{max-width:780px;margin:0 auto}
+.page-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:1.5rem}
+.header-badge{flex-shrink:0;width:48px;height:48px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.header-text h1{font-family:var(--mono);font-size:22px;font-weight:500;letter-spacing:-0.03em;line-height:1.2}
+.header-text p{font-size:13px;color:var(--text-2);margin-top:4px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;margin-bottom:1rem}
+.card-title{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)}
+.field{margin-bottom:1.25rem}.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;letter-spacing:.01em}
+.field label .req{color:var(--accent);margin-left:2px}
+input[type=text],input[type=datetime-local],textarea,.csi,select.styled{width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);font-size:14px;background:var(--surface);color:var(--text);transition:border-color .15s,box-shadow .15s;-webkit-appearance:none}
+select.styled{appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22><path fill=%22%23a09b95%22 d=%22M6 8L1 3h10z%22/></svg>');background-repeat:no-repeat;background-position:right 13px center;cursor:pointer}
+input[type=text]:focus,input[type=datetime-local]:focus,textarea:focus,.csi:focus,select.styled:focus{outline:none;border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(28,28,28,.07)}
+textarea{resize:vertical;min-height:90px;line-height:1.55}
+textarea.tall{min-height:120px}
+.hint{font-size:11px;color:var(--text-3);margin-top:4px}
+/* Mode selector */
+.mode-select{display:flex;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:5px;margin-bottom:1.5rem}
+.mode-btn{flex:1;padding:12px;font-family:var(--mono);font-size:13px;font-weight:500;letter-spacing:.03em;background:transparent;color:var(--text-2);border:none;border-radius:8px;cursor:pointer;transition:all .15s}
+.mode-btn.active{background:var(--text);color:#fff}
+/* Update picker */
+#update-picker{display:none}
+.ir-list{margin-top:12px;display:none}
+.ir-item{padding:13px 15px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;cursor:pointer;transition:border-color .15s,background .15s;background:var(--surface)}
+.ir-item:hover{border-color:var(--text);background:#faf9f7}
+.ir-item .ir-ref{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--accent)}
+.ir-item .ir-meta{font-size:12px;color:var(--text-2);margin-top:3px;line-height:1.5}
+.ir-loading{font-size:13px;color:var(--text-3);padding:10px 0;display:none}
+.ir-empty{font-size:13px;color:var(--text-3);padding:10px 0;font-style:italic;display:none}
+/* Update banner */
+.update-banner{display:none;background:#fff8ec;border:1px solid #f0b955;border-radius:var(--radius);padding:12px 16px;font-size:13px;color:#7a4d00;margin-bottom:1.25rem;line-height:1.5}
+.update-banner .ub-ref{font-family:var(--mono);font-weight:500}
+/* Searchable dropdown */
+.dw{position:relative}
+.csi{cursor:pointer;padding-right:36px}
+.da{position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-3);font-size:12px}
+.dl{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border-focus);border-radius:var(--radius);max-height:260px;overflow-y:auto;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.dl.open{display:block}
+.di{padding:10px 13px;font-size:13px;cursor:pointer;color:var(--text);border-bottom:1px solid #f3f0ec;transition:background .1s}
+.di:last-child{border-bottom:none}
+.di:hover,.di.hi{background:#f5f2ee}
+.di.nr{color:var(--text-3);cursor:default;font-style:italic}
+.di mark{background:#ffe08a;border-radius:2px;padding:0 1px}
+/* Map */
+.map-toolbar{display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
+.layer-btn{font-family:var(--mono);font-size:11px;font-weight:500;padding:5px 14px;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:var(--surface);color:var(--text-2);transition:all .15s}
+.layer-btn.active{background:var(--text);color:#fff;border-color:var(--text)}
+.map-hint{font-size:11px;color:var(--text-3);margin-left:auto}
+#map{height:300px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.coords-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.coord-box{font-family:var(--mono);font-size:12px;padding:8px 11px;background:#f7f5f2;border:1px solid var(--border);border-radius:var(--radius)}
+.coord-lbl{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.pin-msg{margin-top:7px;font-size:12px;padding:7px 11px;border-radius:var(--radius);background:#f7f5f2;color:var(--text-3);border:1px solid var(--border);transition:all .2s}
+.pin-msg.placed{background:var(--success-bg);color:var(--success);border-color:var(--success-border)}
+/* Submit */
+.submit-btn{width:100%;padding:14px;font-family:var(--mono);font-size:14px;font-weight:500;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;letter-spacing:.04em;margin-top:1.5rem;transition:opacity .15s}
+.submit-btn:hover{opacity:.88}
+.submit-btn:disabled{opacity:.4;cursor:not-allowed}
+.error-msg{display:none;margin-top:1rem;padding:12px 14px;border:1px solid #f09595;border-radius:var(--radius);background:#fdf0ef;color:#a32d2d;font-size:13px;line-height:1.6}
+.setup-banner{background:#fff8ec;border:1px solid #f0b955;border-radius:var(--radius);padding:12px 16px;font-size:13px;color:#7a4d00;margin-bottom:1.25rem;line-height:1.6}
+.setup-banner code{font-family:var(--mono);background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px;font-size:12px;word-break:break-all}
+/* Summary */
+#summary-page{display:none}
+.sum-header{background:var(--success-bg);border:1px solid var(--success-border);border-radius:12px;padding:1.75rem 2rem;margin-bottom:1rem;display:flex;align-items:center;gap:16px}
+.sum-tick{flex-shrink:0;width:52px;height:52px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff}
+.sum-header-text h2{font-family:var(--mono);font-size:17px;font-weight:500;color:var(--success)}
+.sum-ref{font-family:var(--mono);font-size:12px;color:var(--success);opacity:.7;margin-top:3px}
+.sum-ts{font-size:12px;color:var(--success);opacity:.6;margin-top:2px}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1rem}
+.sum-row{display:grid;grid-template-columns:200px 1fr;border-bottom:1px solid #f0ede8}
+.sum-row:last-child{border-bottom:none}
+.sum-key{padding:13px 16px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);background:#faf9f7;border-right:1px solid #f0ede8;display:flex;align-items:flex-start;line-height:1.4}
+.sum-val{padding:13px 16px;font-size:13.5px;color:var(--text);line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.sum-val.mono{font-family:var(--mono);font-size:12px}
+.sum-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn-copy{flex:1;min-width:140px;padding:12px 16px;font-family:var(--mono);font-size:13px;font-weight:500;background:var(--text);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;letter-spacing:.03em;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-copy:hover{opacity:.82}
+.btn-copy.copied{background:var(--success)}
+.btn-another{flex:1;min-width:140px;padding:12px 16px;font-family:var(--mono);font-size:13px;font-weight:500;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;letter-spacing:.03em;transition:border-color .15s}
+.btn-another:hover{border-color:var(--text)}
+.btn-maps{flex:1;min-width:140px;padding:12px 16px;font-family:var(--mono);font-size:13px;font-weight:500;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;letter-spacing:.03em;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .15s}
+.btn-maps:hover{opacity:.85}
+@media(max-width:520px){
+  .sum-row{grid-template-columns:1fr}
+  .sum-key{border-right:none;border-bottom:1px solid #f0ede8;padding:10px 14px 6px}
+  .sum-val{padding:6px 14px 12px}
+  .card{padding:1.25rem}
+  .sum-actions{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<!-- FORM PAGE -->
+<div id="form-page" class="shell">
+  <div class="page-header">
+    <div class="header-badge">🚨</div>
+    <div class="header-text">
+      <h1>Incident Report</h1>
+      <p>Complete all required fields accurately. All entries are recorded and timestamped.</p>
+    </div>
+  </div>
+
+  <div class="setup-banner" id="setup-banner">
+    <strong>Setup required:</strong> Open this file in a text editor and replace <code>YOUR_APPS_SCRIPT_URL_HERE</code> with your deployed Google Apps Script Web App URL.
+  </div>
+
+  <!-- Mode selector -->
+  <div class="mode-select">
+    <button class="mode-btn active" id="mode-new" onclick="setMode('new')">NEW IR</button>
+    <button class="mode-btn" id="mode-update" onclick="setMode('update')">UPDATE OF IR</button>
+  </div>
+
+  <!-- Update picker (shown only in update mode) -->
+  <div class="card" id="update-picker">
+    <div class="card-title">Select IR to Update</div>
+    <div class="field">
+      <label>Select Unit</label>
+      <select class="styled" id="picker-unit" onchange="loadIRList()">
+        <option value="">— Select unit —</option>
+        <option>Int-LAS</option>
+        <option>SOAR</option>
+        <option>ITC 1</option>
+        <option>ITC 2</option>
+        <option>IGS</option>
+        <option>EP&amp;C</option>
+        <option>TLSB</option>
+        <option>TSB</option>
+        <option>TI HQ</option>
+      </select>
+    </div>
+    <div class="ir-loading" id="ir-loading">Loading previous IRs…</div>
+    <div class="ir-empty" id="ir-empty">No previous IRs found for this unit.</div>
+    <div class="ir-list" id="ir-list"></div>
+  </div>
+
+  <!-- Form content (hidden while picking IR in update mode) -->
+  <div id="form-content">
+
+    <div class="update-banner" id="update-banner">
+      ✏️ Updating <span class="ub-ref" id="ub-ref"></span> — previous entries have been loaded below. Amend what has changed, then submit.
+    </div>
+
+    <!-- Card 1 -->
+    <div class="card">
+      <div class="card-title">01 — Incident Details</div>
+
+      <div class="field">
+        <label>Nature &amp; Type of Incident <span class="req">*</span></label>
+        <div class="dw">
+          <input type="text" class="csi" id="inc-type-search" placeholder="Type to search or select…" autocomplete="off"
+            oninput="filterDD()" onfocus="openDD()" onblur="blurDD()">
+          <span class="da">▾</span>
+          <div class="dl" id="dd-list"></div>
+        </div>
+        <input type="hidden" id="inc-type-val">
+      </div>
+
+      <div class="field">
+        <label>Brief Description of Incident <span class="req">*</span></label>
+        <textarea class="tall" id="description" placeholder="Describe what happened in detail…"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Current Status <span class="req">*</span></label>
+        <textarea id="current-status" placeholder="What is the current situation / status of the incident?"></textarea>
+      </div>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="card">
+      <div class="card-title">02 — Time &amp; Location</div>
+
+      <div class="field">
+        <label>Date &amp; Time of Incident <span class="req">*</span></label>
+        <input type="datetime-local" id="inc-datetime"/>
+      </div>
+
+      <div class="field">
+        <label>Location of Incident <span class="req">*</span></label>
+        <input type="text" id="location" placeholder="e.g. Stagmont Camp, Training Area 3, Block B"/>
+        <div class="hint" style="margin-bottom:10px">Indicating location on map for data trending purposes of training and admin incidents. Generic entry for incidents such as report sick outside is acceptable.</div>
+        <div class="map-toolbar">
+          <button class="layer-btn active" id="btn-street" onclick="switchLayer('street')">Street</button>
+          <button class="layer-btn" id="btn-satellite" onclick="switchLayer('satellite')">Satellite</button>
+          <button class="layer-btn" id="btn-topo" onclick="switchLayer('topo')">Topo</button>
+          <span class="map-hint">Scroll to zoom · Click to pin</span>
+        </div>
+        <div id="map"></div>
+        <div class="coords-row">
+          <div class="coord-box"><div class="coord-lbl">Latitude</div><span id="lat-out">—</span></div>
+          <div class="coord-box"><div class="coord-lbl">Longitude</div><span id="lng-out">—</span></div>
+        </div>
+        <div class="pin-msg" id="pin-msg">No location pinned yet — click on the map to mark the incident site</div>
+      </div>
+
+      <div class="field">
+        <label>Unit Involved / Affected <span class="req">*</span></label>
+        <select class="styled" id="unit">
+          <option value="">— Select unit —</option>
+          <option>Int-LAS</option>
+          <option>SOAR</option>
+          <option>ITC 1</option>
+          <option>ITC 2</option>
+          <option>IGS</option>
+          <option>EP&amp;C</option>
+          <option>TLSB</option>
+          <option>TSB</option>
+          <option>TI HQ</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="card">
+      <div class="card-title">03 — Actions &amp; Personnel</div>
+
+      <div class="field">
+        <label>Follow-up Actions <span class="req">*</span></label>
+        <textarea class="tall" id="followup" placeholder="What actions have been or will be taken?"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Particulars of Servicemen / Servicewomen <span class="req">*</span></label>
+        <div class="hint" style="margin-bottom:8px">Rank, name, NRIC (last 4 chars), PES status, REG/NSF/Others, Course.</div>
+        <textarea class="tall" id="servicemen" placeholder="e.g. CPT John Tan, S1234, PES A, NSF, Exercise Falcon…"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Details of Civilian Involved, if any</label>
+        <textarea id="civilian" placeholder="Leave blank if not applicable. Otherwise state name, contact number…"></textarea>
+      </div>
+    </div>
+
+    <!-- Card 4 -->
+    <div class="card">
+      <div class="card-title">04 — Reporting</div>
+
+      <div class="field">
+        <label>Date &amp; Time Reported to GSOC <span class="req">*</span></label>
+        <label class="toggle-wrap" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer;user-select:none">
+          <span style="position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0">
+            <input type="checkbox" id="gsoc-toggle" onchange="toggleGSOC()" style="opacity:0;width:0;height:0;position:absolute">
+            <span id="gsoc-track" style="position:absolute;inset:0;background:#d8d3cc;border-radius:11px;transition:background .2s"></span>
+            <span id="gsoc-thumb" style="position:absolute;left:3px;top:3px;width:16px;height:16px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s"></span>
+          </span>
+          <span style="font-size:13px;color:var(--text-2)">Not reported to GSOC yet</span>
+        </label>
+        <input type="datetime-local" id="gsoc-datetime"/>
+      </div>
+
+      <div class="field">
+        <label>Reporting Officer <span class="req">*</span></label>
+        <input type="text" id="reporting-officer" placeholder="Full rank, name and contact number"/>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submit-btn" onclick="submitForm()">SUBMIT INCIDENT REPORT →</button>
+    <div class="error-msg" id="error-msg"></div>
+  </div><!-- /form-content -->
+</div>
+
+<!-- SUMMARY PAGE -->
+<div id="summary-page" class="shell">
+  <div class="page-header">
+    <div class="header-badge">🚨</div>
+    <div class="header-text">
+      <h1>Incident Report</h1>
+      <p>Submission confirmed. Review your report below.</p>
+    </div>
+  </div>
+
+  <div class="sum-header">
+    <div class="sum-tick">✓</div>
+    <div class="sum-header-text">
+      <h2 id="sum-title">Report Submitted Successfully</h2>
+      <div class="sum-ref" id="sum-ref"></div>
+      <div class="sum-ts" id="sum-ts"></div>
+    </div>
+  </div>
+
+  <div class="sum-card">
+    <div class="sum-row"><div class="sum-key">1. Nature &amp; Type</div><div class="sum-val" id="s-type"></div></div>
+    <div class="sum-row"><div class="sum-key">2. Brief Description</div><div class="sum-val" id="s-desc"></div></div>
+    <div class="sum-row"><div class="sum-key">3. Current Status</div><div class="sum-val" id="s-status"></div></div>
+    <div class="sum-row"><div class="sum-key">4. Date &amp; Time of Incident</div><div class="sum-val mono" id="s-datetime"></div></div>
+    <div class="sum-row"><div class="sum-key">5. Location</div><div class="sum-val" id="s-location"></div></div>
+    <div class="sum-row"><div class="sum-key">6. Unit Involved</div><div class="sum-val" id="s-unit"></div></div>
+    <div class="sum-row"><div class="sum-key">7. Follow-up Actions</div><div class="sum-val" id="s-followup"></div></div>
+    <div class="sum-row"><div class="sum-key">8. Servicemen / Servicewomen</div><div class="sum-val" id="s-servicemen"></div></div>
+    <div class="sum-row"><div class="sum-key">9. Civilian Details</div><div class="sum-val" id="s-civilian"></div></div>
+    <div class="sum-row"><div class="sum-key">10. Reported to GSOC</div><div class="sum-val mono" id="s-gsoc"></div></div>
+    <div class="sum-row"><div class="sum-key">11. Reporting Officer</div><div class="sum-val" id="s-officer"></div></div>
+  </div>
+
+  <div class="sum-actions">
+    <button class="btn-copy" id="copy-btn" onclick="copyReport()">
+      <span id="copy-icon">⎘</span><span id="copy-label">COPY REPORT</span>
+    </button>
+    <a class="btn-maps" id="maps-link" href="#" target="_blank">📍 VIEW ON MAPS</a>
+    <button class="btn-another" onclick="resetForm()">SUBMIT ANOTHER</button>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+var APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+if(APPS_SCRIPT_URL!=='YOUR_APPS_SCRIPT_URL_HERE'){var b=document.getElementById('setup-banner');if(b)b.style.display='none';}
+
+// ── STATE ─────────────────────────────────────────────────────
+var mode='new';           // 'new' | 'update'
+var updateRefId=null;     // ref ID being updated
+
+// ── MODE SWITCHING ────────────────────────────────────────────
+function setMode(m){
+  mode=m;
+  updateRefId=null;
+  document.getElementById('mode-new').classList.toggle('active',m==='new');
+  document.getElementById('mode-update').classList.toggle('active',m==='update');
+  document.getElementById('update-banner').style.display='none';
+  document.getElementById('submit-btn').textContent = m==='update' ? 'SUBMIT IR UPDATE →' : 'SUBMIT INCIDENT REPORT →';
+  if(m==='update'){
+    document.getElementById('update-picker').style.display='block';
+    document.getElementById('form-content').style.display='none';
+    document.getElementById('picker-unit').value='';
+    document.getElementById('ir-list').style.display='none';
+    document.getElementById('ir-empty').style.display='none';
+    clearFields();
+  }else{
+    document.getElementById('update-picker').style.display='none';
+    document.getElementById('form-content').style.display='block';
+    clearFields();
+    setTimeout(function(){map.invalidateSize();},200);
+  }
+}
+
+// ── UPDATE MODE: LIST + LOAD IRs ──────────────────────────────
+function loadIRList(){
+  var unit=document.getElementById('picker-unit').value;
+  var list=document.getElementById('ir-list');
+  var loading=document.getElementById('ir-loading');
+  var empty=document.getElementById('ir-empty');
+  list.style.display='none';list.innerHTML='';
+  empty.style.display='none';
+  if(!unit)return;
+  if(APPS_SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE'){alert('Setup incomplete: add your Apps Script URL first.');return;}
+  loading.style.display='block';
+  fetch(APPS_SCRIPT_URL+'?action=listIRs&unit='+encodeURIComponent(unit))
+  .then(function(r){return r.json();})
+  .then(function(res){
+    loading.style.display='none';
+    if(res.status!=='success'||!res.irs||!res.irs.length){empty.style.display='block';return;}
+    res.irs.forEach(function(ir){
+      var div=document.createElement('div');
+      div.className='ir-item';
+      div.innerHTML='<div class="ir-ref">'+ir.refId+'</div>'+
+        '<div class="ir-meta">'+(ir.incidentType||'—')+'<br>Incident: '+(ir.incidentDateTime||'—')+' · Submitted: '+(ir.submittedAt||'—')+'</div>';
+      div.addEventListener('click',function(){loadIR(ir.refId);});
+      list.appendChild(div);
+    });
+    list.style.display='block';
+  })
+  .catch(function(err){
+    loading.style.display='none';
+    alert('Could not load IR list. Check your connection and that the Apps Script is deployed with the latest version. ('+err.message+')');
+  });
+}
+
+function loadIR(refId){
+  var loading=document.getElementById('ir-loading');
+  loading.textContent='Loading '+refId+'…';
+  loading.style.display='block';
+  fetch(APPS_SCRIPT_URL+'?action=getIR&refId='+encodeURIComponent(refId))
+  .then(function(r){return r.json();})
+  .then(function(res){
+    loading.style.display='none';loading.textContent='Loading previous IRs…';
+    if(res.status!=='success'){alert(res.message||'Could not load IR.');return;}
+    fillForm(res.record);
+    updateRefId=refId;
+    document.getElementById('ub-ref').textContent=refId;
+    document.getElementById('update-banner').style.display='block';
+    document.getElementById('update-picker').style.display='none';
+    document.getElementById('form-content').style.display='block';
+    window.scrollTo({top:0,behavior:'smooth'});
+    setTimeout(function(){map.invalidateSize();},200);
+  })
+  .catch(function(err){
+    loading.style.display='none';loading.textContent='Loading previous IRs…';
+    alert('Could not load IR. ('+err.message+')');
+  });
+}
+
+// Convert "DD-MM-YYYY HH:MM" back to datetime-local value "YYYY-MM-DDTHH:MM"
+function toInputDT(s){
+  if(!s)return'';
+  var m=String(s).match(/^(\d{2})-(\d{2})-(\d{4})[ T](\d{2}):(\d{2})/);
+  if(!m)return'';
+  return m[3]+'-'+m[2]+'-'+m[1]+'T'+m[4]+':'+m[5];
+}
+
+function fillForm(r){
+  selectType(r.incidentType||'');
+  document.getElementById('description').value=r.description||'';
+  document.getElementById('current-status').value=r.currentStatus||'';
+  document.getElementById('inc-datetime').value=toInputDT(r.incidentDateTime);
+  document.getElementById('location').value=r.location||'';
+  document.getElementById('unit').value=r.unit||'';
+  document.getElementById('followup').value=r.followupActions||'';
+  document.getElementById('servicemen').value=r.servicemenParticulars||'';
+  document.getElementById('civilian').value=(r.civilianDetails==='Nil')?'':(r.civilianDetails||'');
+  document.getElementById('reporting-officer').value=r.reportingOfficer||'';
+  // GSOC
+  var notReported=(r.gsocDateTime==='Not reported yet');
+  document.getElementById('gsoc-toggle').checked=notReported;
+  toggleGSOC();
+  document.getElementById('gsoc-datetime').value=notReported?'':toInputDT(r.gsocDateTime);
+  // Map pin
+  if(marker){map.removeLayer(marker);marker=null;}
+  pinnedLat=null;pinnedLng=null;
+  var pm=document.getElementById('pin-msg');
+  if(r.latitude&&r.longitude&&!isNaN(parseFloat(r.latitude))){
+    pinnedLat=parseFloat(r.latitude);pinnedLng=parseFloat(r.longitude);
+    marker=L.marker([pinnedLat,pinnedLng],{icon:pinIcon}).addTo(map);
+    map.setView([pinnedLat,pinnedLng],15);
+    document.getElementById('lat-out').textContent=pinnedLat.toFixed(6);
+    document.getElementById('lng-out').textContent=pinnedLng.toFixed(6);
+    pm.textContent='Pinned: '+pinnedLat.toFixed(5)+', '+pinnedLng.toFixed(5);
+    pm.classList.add('placed');
+  }else{
+    document.getElementById('lat-out').textContent='—';
+    document.getElementById('lng-out').textContent='—';
+    pm.textContent='No location pinned yet — click on the map to mark the incident site';
+    pm.classList.remove('placed');
+    map.setView([1.3521,103.8198],11);
+  }
+}
+
+// ── INCIDENT TYPES (searchable dropdown) ──────────────────────
+var TYPES=[
+  'Armament (Arms / Weapons and Ammo Related)',
+  'Caught in Between','Contractor Related','Crushed by Object(s)',
+  'Cut & Stab By Object(s)','Damaged Facility / Property / Equipment',
+  'Deviation from / Outdated AOMs / Safety Information','Explosion',
+  'Exposure to Disease','Exposure to Electric Current',
+  'Exposure to Hazardous Materials','Exposure to Radiation','Exposure to Toxins',
+  'Fire','Heat Related Incident',
+  'Lack of Coordination / Communication Between Services / Units',
+  'Lack of Safety Coverage / Stores / Procedures','Lightning Strike',
+  'Military Combat Vehicle Related','Military Non-Combat Vehicle Related',
+  'Negligent Discharge (Blank)','Negligent Discharge (Live)',
+  'Participant on Medical Status / Ineligible / Unwell',
+  'Personnel Protection Equipment Related','Personnel Falling from Height',
+  'Personnel Struck by Falling Object(s)','Pest / Animal / Wildlife Related',
+  'Physical Injury (Others)','Potential Food Poisoning Risk',
+  'Potential Heat Injury Risk','Privately Owned Vehicle',
+  'Privately Owned Vehicle (Motorcycle)','Slip Trip Fall','Smoke Inhalation',
+  'Strike Against Object(s)','Struck by Moving Object(s)',
+  'Unauthorised Entry to Training Area','Unmanned Aerial Vehicle Related','Others'
+];
+var hiIdx=-1;
+function renderDD(items,q){
+  var list=document.getElementById('dd-list');list.innerHTML='';
+  if(!items.length){list.innerHTML='<div class="di nr">No results found</div>';return;}
+  items.forEach(function(item){
+    var div=document.createElement('div');div.className='di';
+    if(q){var re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');div.innerHTML=item.replace(re,'<mark>$1</mark>');}
+    else div.textContent=item;
+    div.addEventListener('mousedown',function(e){e.preventDefault();selectType(item);});
+    list.appendChild(div);
+  });hiIdx=-1;
+}
+function openDD(){
+  var q=document.getElementById('inc-type-search').value.trim();
+  renderDD(q?TYPES.filter(function(t){return t.toLowerCase().includes(q.toLowerCase());}):TYPES,q);
+  document.getElementById('dd-list').classList.add('open');
+}
+function filterDD(){
+  var q=document.getElementById('inc-type-search').value.trim();
+  renderDD(q?TYPES.filter(function(t){return t.toLowerCase().includes(q.toLowerCase());}):TYPES,q);
+  document.getElementById('dd-list').classList.add('open');
+  document.getElementById('inc-type-val').value='';
+}
+function blurDD(){setTimeout(function(){document.getElementById('dd-list').classList.remove('open');},150);}
+function selectType(val){
+  document.getElementById('inc-type-search').value=val;
+  document.getElementById('inc-type-val').value=val;
+  document.getElementById('dd-list').classList.remove('open');
+}
+document.getElementById('inc-type-search').addEventListener('keydown',function(e){
+  var items=document.querySelectorAll('.di:not(.nr)');
+  if(e.key==='ArrowDown'){e.preventDefault();hiIdx=Math.min(hiIdx+1,items.length-1);items.forEach(function(el,i){el.classList.toggle('hi',i===hiIdx);});if(items[hiIdx])items[hiIdx].scrollIntoView({block:'nearest'});}
+  else if(e.key==='ArrowUp'){e.preventDefault();hiIdx=Math.max(hiIdx-1,0);items.forEach(function(el,i){el.classList.toggle('hi',i===hiIdx);});}
+  else if(e.key==='Enter'){e.preventDefault();if(hiIdx>=0&&items[hiIdx])selectType(items[hiIdx].textContent);}
+  else if(e.key==='Escape')document.getElementById('dd-list').classList.remove('open');
+});
+
+// ── MAP ───────────────────────────────────────────────────────
+var map=L.map('map',{zoomControl:true}).setView([1.3521,103.8198],11);
+var layers={
+  street:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}),
+  satellite:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19}),
+  topo:L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'© OpenTopoMap',maxZoom:17})
+};
+layers.street.addTo(map);
+var curLayer='street',marker=null,pinnedLat=null,pinnedLng=null;
+function switchLayer(n){map.removeLayer(layers[curLayer]);layers[n].addTo(map);curLayer=n;['street','satellite','topo'].forEach(function(l){document.getElementById('btn-'+l).classList.toggle('active',l===n);});}
+var pinIcon=L.divIcon({className:'',html:'<div style="width:16px;height:16px;border-radius:50%;background:#c0392b;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)"></div>',iconSize:[16,16],iconAnchor:[8,8]});
+map.on('click',function(e){
+  pinnedLat=e.latlng.lat;pinnedLng=e.latlng.lng;
+  if(marker)map.removeLayer(marker);
+  marker=L.marker([pinnedLat,pinnedLng],{icon:pinIcon}).addTo(map);
+  document.getElementById('lat-out').textContent=pinnedLat.toFixed(6);
+  document.getElementById('lng-out').textContent=pinnedLng.toFixed(6);
+  var pm=document.getElementById('pin-msg');
+  pm.textContent='Pinned: '+pinnedLat.toFixed(5)+', '+pinnedLng.toFixed(5);
+  pm.classList.add('placed');
+});
+
+// ── HELPERS ───────────────────────────────────────────────────
+function fmtDT(val){
+  if(!val)return'—';
+  var d=new Date(val);
+  return String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+function toggleGSOC(){
+  var on=document.getElementById('gsoc-toggle').checked;
+  document.getElementById('gsoc-track').style.background=on?'#2d6a4f':'#d8d3cc';
+  document.getElementById('gsoc-thumb').style.transform=on?'translateX(18px)':'translateX(0)';
+  var dt=document.getElementById('gsoc-datetime');
+  dt.style.display=on?'none':'block';
+}
+
+// ── SUBMIT (new or update) ────────────────────────────────────
+function submitForm(){
+  if(APPS_SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE'){alert('Setup incomplete: add your Apps Script URL first.');return;}
+  var gsocNotReported=document.getElementById('gsoc-toggle').checked;
+  var f={
+    incType:document.getElementById('inc-type-val').value.trim(),
+    desc:document.getElementById('description').value.trim(),
+    status:document.getElementById('current-status').value.trim(),
+    incDT:document.getElementById('inc-datetime').value,
+    loc:document.getElementById('location').value.trim(),
+    unit:document.getElementById('unit').value.trim(),
+    followup:document.getElementById('followup').value.trim(),
+    servicemen:document.getElementById('servicemen').value.trim(),
+    civilian:document.getElementById('civilian').value.trim(),
+    gsocDT:gsocNotReported?'':document.getElementById('gsoc-datetime').value,
+    officer:document.getElementById('reporting-officer').value.trim()
+  };
+  var miss=[];
+  if(!f.incType)miss.push('Nature & Type of Incident');
+  if(!f.desc)miss.push('Brief Description');
+  if(!f.status)miss.push('Current Status');
+  if(!f.incDT)miss.push('Date & Time of Incident');
+  if(!f.loc)miss.push('Location of Incident');
+  if(!f.unit)miss.push('Unit Involved / Affected');
+  if(!f.followup)miss.push('Follow-up Actions');
+  if(!f.servicemen)miss.push('Particulars of Servicemen / Servicewomen');
+  if(!gsocNotReported&&!f.gsocDT)miss.push('Date & Time Reported to GSOC');
+  if(!f.officer)miss.push('Reporting Officer');
+  if(miss.length){var em=document.getElementById('error-msg');em.innerHTML='<strong>Please complete the following fields:</strong><br>'+miss.join('<br>');em.style.display='block';em.scrollIntoView({behavior:'smooth',block:'center'});return;}
+  document.getElementById('error-msg').style.display='none';
+
+  var btn=document.getElementById('submit-btn');btn.disabled=true;btn.textContent='SUBMITTING…';
+
+  var payload={
+    action: (mode==='update'&&updateRefId) ? 'update' : 'new',
+    refId: (mode==='update'&&updateRefId) ? updateRefId : '',
+    incidentType:f.incType,
+    description:f.desc,
+    currentStatus:f.status,
+    incidentDateTime:fmtDT(f.incDT),
+    location:f.loc,
+    latitude:pinnedLat?pinnedLat.toFixed(6):'',
+    longitude:pinnedLng?pinnedLng.toFixed(6):'',
+    unit:f.unit,
+    followupActions:f.followup,
+    servicemenParticulars:f.servicemen,
+    civilianDetails:f.civilian||'Nil',
+    gsocDateTime: gsocNotReported ? 'Not reported yet' : fmtDT(f.gsocDT),
+    reportingOfficer:f.officer
+  };
+
+  // NOTE: body sent as plain text (no Content-Type header) so the response is readable.
+  fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)})
+  .then(function(r){return r.json();})
+  .then(function(res){
+    if(res.status!=='success'){throw new Error(res.message||'Server error');}
+    showSummary(payload,res.refId);
+  })
+  .catch(function(err){
+    var em=document.getElementById('error-msg');
+    em.textContent='Submission failed. Check your internet connection and that the Apps Script is redeployed with the latest version. ('+err.message+')';
+    em.style.display='block';
+    btn.disabled=false;
+    btn.textContent = mode==='update' ? 'SUBMIT IR UPDATE →' : 'SUBMIT INCIDENT REPORT →';
+  });
+}
+
+function showSummary(p,refId){
+  document.getElementById('form-page').style.display='none';
+  document.getElementById('summary-page').style.display='block';
+  document.getElementById('sum-title').textContent = (p.action==='update') ? 'IR Updated Successfully' : 'Report Submitted Successfully';
+  document.getElementById('sum-ref').textContent=refId;
+  document.getElementById('sum-ts').textContent=((p.action==='update')?'Updated ':'Submitted ')+new Date().toLocaleString('en-SG',{timeZone:'Asia/Singapore',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('s-type').textContent=p.incidentType;
+  document.getElementById('s-desc').textContent=p.description;
+  document.getElementById('s-status').textContent=p.currentStatus;
+  document.getElementById('s-datetime').textContent=p.incidentDateTime;
+  document.getElementById('s-location').textContent=p.location;
+  document.getElementById('s-unit').textContent=p.unit;
+  document.getElementById('s-followup').textContent=p.followupActions;
+  document.getElementById('s-servicemen').textContent=p.servicemenParticulars;
+  document.getElementById('s-civilian').textContent=p.civilianDetails;
+  document.getElementById('s-gsoc').textContent=p.gsocDateTime;
+  document.getElementById('s-officer').textContent=p.reportingOfficer;
+  var ml=document.getElementById('maps-link');
+  if(p.latitude&&p.longitude){ml.href='https://www.google.com/maps?q='+p.latitude+','+p.longitude;ml.style.display='';}
+  else{ml.style.display='none';}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function copyReport(){
+  var unit=document.getElementById('s-unit').textContent;
+  var refId=document.getElementById('sum-ref').textContent;
+  var lines=[
+    unit+' ('+refId+')','',
+    '1. Nature & Type of Incident:',document.getElementById('s-type').textContent,'',
+    '2. Brief Description of Incident:',document.getElementById('s-desc').textContent,'',
+    '3. Current Status:',document.getElementById('s-status').textContent,'',
+    '4. Date & Time of Incident:',document.getElementById('s-datetime').textContent,'',
+    '5. Location of Incident:',document.getElementById('s-location').textContent,'',
+    '6. Unit Involved / Affected:',document.getElementById('s-unit').textContent,'',
+    '7. Follow-up Actions:',document.getElementById('s-followup').textContent,'',
+    '8. Particulars of Servicemen / Servicewomen:',document.getElementById('s-servicemen').textContent,'',
+    '9. Details of Civilian Involved:',document.getElementById('s-civilian').textContent,'',
+    '10. Date & Time Reported to GSOC:',document.getElementById('s-gsoc').textContent,'',
+    '11. Reporting Officer:',document.getElementById('s-officer').textContent,'',
+    '12. Vetting Officer:'
+  ];
+  var txt=lines.join('\n');
+  navigator.clipboard.writeText(txt).then(function(){
+    var btn=document.getElementById('copy-btn'),lbl=document.getElementById('copy-label');
+    btn.classList.add('copied');lbl.textContent='COPIED!';
+    setTimeout(function(){btn.classList.remove('copied');lbl.textContent='COPY REPORT';},2500);
+  }).catch(function(){
+    var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    document.getElementById('copy-label').textContent='COPIED!';
+  });
+}
+
+function clearFields(){
+  ['description','current-status','location','followup','servicemen','civilian','reporting-officer'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('unit').value='';
+  document.getElementById('inc-datetime').value='';
+  document.getElementById('gsoc-toggle').checked=false;
+  toggleGSOC();
+  document.getElementById('gsoc-datetime').value='';
+  document.getElementById('inc-type-search').value='';
+  document.getElementById('inc-type-val').value='';
+  if(marker){map.removeLayer(marker);marker=null;}
+  pinnedLat=null;pinnedLng=null;
+  document.getElementById('lat-out').textContent='—';
+  document.getElementById('lng-out').textContent='—';
+  var pm=document.getElementById('pin-msg');pm.textContent='No location pinned yet — click on the map to mark the incident site';pm.classList.remove('placed');
+  map.setView([1.3521,103.8198],11);
+  document.getElementById('error-msg').style.display='none';
+}
+
+function resetForm(){
+  clearFields();
+  updateRefId=null;
+  var btn=document.getElementById('submit-btn');btn.disabled=false;
+  document.getElementById('summary-page').style.display='none';
+  document.getElementById('form-page').style.display='block';
+  setMode('new');
+  window.scrollTo({top:0,behavior:'smooth'});
+  setTimeout(function(){map.invalidateSize();},300);
+}
+</script>
+</body>
+</html>
