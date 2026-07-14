@@ -121,7 +121,7 @@ textarea.tall{min-height:120px}
   </div>
 
   <div class="setup-banner" id="setup-banner">
-    <strong>Setup required:</strong> Open this file in a text editor and replace <code>https://script.google.com/macros/s/AKfycbxhiJfnhKMiemra1bMPMggcSDlwCk0BIB7tU_9G7hDMlYMmJiZmf2K3i2zyMsjnRDNUrQ/exec</code> with your deployed Google Apps Script Web App URL.
+    <strong>Setup required:</strong> Open this file in a text editor and replace <code>YOUR_APPS_SCRIPT_URL_HERE</code> with your deployed Google Apps Script Web App URL.
   </div>
 
   <!-- Mode selector -->
@@ -326,7 +326,7 @@ textarea.tall{min-height:120px}
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhiJfnhKMiemra1bMPMggcSDlwCk0BIB7tU_9G7hDMlYMmJiZmf2K3i2zyMsjnRDNUrQ/exec';
-if(APPS_SCRIPT_URL!=='https://script.google.com/macros/s/AKfycbxhiJfnhKMiemra1bMPMggcSDlwCk0BIB7tU_9G7hDMlYMmJiZmf2K3i2zyMsjnRDNUrQ/exec'){var b=document.getElementById('setup-banner');if(b)b.style.display='none';}
+if(APPS_SCRIPT_URL!=='YOUR_APPS_SCRIPT_URL_HERE'){var b=document.getElementById('setup-banner');if(b)b.style.display='none';}
 
 // ── STATE ─────────────────────────────────────────────────────
 var mode='new';           // 'new' | 'update'
@@ -364,7 +364,7 @@ function loadIRList(){
   list.style.display='none';list.innerHTML='';
   empty.style.display='none';
   if(!unit)return;
-  if(APPS_SCRIPT_URL==='https://script.google.com/macros/s/AKfycbxhiJfnhKMiemra1bMPMggcSDlwCk0BIB7tU_9G7hDMlYMmJiZmf2K3i2zyMsjnRDNUrQ/exec'){alert('Setup incomplete: add your Apps Script URL first.');return;}
+  if(APPS_SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE'){alert('Setup incomplete: add your Apps Script URL first.');return;}
   loading.style.display='block';
   fetch(APPS_SCRIPT_URL+'?action=listIRs&unit='+encodeURIComponent(unit))
   .then(function(r){return r.json();})
@@ -553,7 +553,7 @@ function toggleGSOC(){
 
 // ── SUBMIT (new or update) ────────────────────────────────────
 function submitForm(){
-  if(APPS_SCRIPT_URL==='https://script.google.com/macros/s/AKfycbxhiJfnhKMiemra1bMPMggcSDlwCk0BIB7tU_9G7hDMlYMmJiZmf2K3i2zyMsjnRDNUrQ/exec'){alert('Setup incomplete: add your Apps Script URL first.');return;}
+  if(APPS_SCRIPT_URL==='YOUR_APPS_SCRIPT_URL_HERE'){alert('Setup incomplete: add your Apps Script URL first.');return;}
   var gsocNotReported=document.getElementById('gsoc-toggle').checked;
   var f={
     incType:document.getElementById('inc-type-val').value.trim(),
