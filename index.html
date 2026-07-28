@@ -116,7 +116,7 @@ textarea.tall{min-height:120px}
     <div class="header-badge">🚨</div>
     <div class="header-text">
       <h1>Incident Report</h1>
-      <p>Complete all required fields accurately. All entries are recorded and timestamped.</p>
+      <p>Complete fields as required. Entries will be recorded and given unique ID after submission.</p>
     </div>
   </div>
 
@@ -178,7 +178,7 @@ textarea.tall{min-height:120px}
 
       <div class="field">
         <label>Brief Description of Incident <span class="req">*</span></label>
-        <textarea class="tall" id="description" placeholder="Describe what happened in detail…"></textarea>
+        <textarea class="tall" id="description" placeholder="Describe what happened in detail. What training activity, rank/name of servicemen involved, what happened, any injuries/damages."></textarea>
       </div>
 
       <div class="field">
@@ -198,8 +198,8 @@ textarea.tall{min-height:120px}
 
       <div class="field">
         <label>Location of Incident <span class="req">*</span></label>
-        <input type="text" id="location" placeholder="e.g. Stagmont Camp, Training Area 3, Block B"/>
-        <div class="hint" style="margin-bottom:10px">Indicating location on map for data trending purposes of training and admin incidents. Generic entry for incidents such as report sick outside is acceptable.</div>
+        <input type="text" id="location" placeholder="e.g. PLC, Outfield Lower Mandai, BCTC, Home"/>
+        <div class="hint" style="margin-bottom:10px">ONLY FOR SLIP/TRIP/FALL, INSECT BITES, identify location on map as accurately as possible.</div>
         <div class="map-toolbar">
           <button class="layer-btn active" id="btn-street" onclick="switchLayer('street')">Street</button>
           <button class="layer-btn" id="btn-satellite" onclick="switchLayer('satellite')">Satellite</button>
@@ -243,8 +243,8 @@ textarea.tall{min-height:120px}
 
       <div class="field">
         <label>Particulars of Servicemen / Servicewomen <span class="req">*</span></label>
-        <div class="hint" style="margin-bottom:8px">Rank, name, NRIC (last 4 chars), PES status, REG/NSF/Others, Course.</div>
-        <textarea class="tall" id="servicemen" placeholder="e.g. CPT John Tan, S1234, PES A, NSF, Exercise Falcon…"></textarea>
+        <div class="hint" style="margin-bottom:8px">Rank, name, NRIC (last 4 chars), REG/NSF/Others, Course.</div>
+        <textarea class="tall" id="servicemen" placeholder="e.g. CPT John Tan, S1234, NSF, Exercise Falcon…"></textarea>
       </div>
 
       <div class="field">
